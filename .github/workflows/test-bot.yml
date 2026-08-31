@@ -1,5 +1,4 @@
-
-name: Test Bot Ollama
+name: Test Bot Full
 
 on:
   workflow_dispatch:
@@ -34,32 +33,40 @@ jobs:
         run: |
           npm install
 
-      - name: Test Ollama
+      - name: Start server
+        env:
+          PORT: 3000
+          OLLAMA_URL: http://127.0.0.1:11434/api/chat
+          OLLAMA_MODEL: qwen2.5:1.5b
+          TELEGRAM_BOT_TOKEN: "123456:TEST_TOKEN"
+          BOT_POLLING: "false"
         run: |
-          node - <<'NODE'
-          const axios = require("axios");
+          npm start > server.log 2>&1 &
+          echo $! > server.pid
+          sleep 10
 
-          async function test() {
-            const response = await axios.post(
-              "http://127.0.0.1:11434/api/chat",
-              {
-                model: "qwen2.5:1.5b",
-                stream: false,
-                messages: [
-                  {
-                    role: "user",
-                    content: "Jawab singkat: apakah kamu aktif?"
-                  }
-                ]
-              }
-            );
+      - name: Test server status
+        run: |
+          echo "Testing /api/status..."
+          curl --fail http://127.0.0.1:3000/api/status
 
-            console.log("Jawaban Ollama:");
-            console.log(response.data.message.content);
-          }
+      - name: Test AI chat
+        run: |
+          echo ""
+          echo "Testing /api/chat..."
 
-          test().catch(err => {
-            console.error(err.response?.data || err.message);
-            process.exit(1);
-          });
-          NODE
+          curl --fail \
+            -X POST \
+            -H "Content-Type: application/json" \
+            -d '{"prompt":"Jawab singkat: apakah AI aktif?"}' \
+            http://127.0.0.1:3000/api/chat
+
+      - name: Show server log
+        if: always()
+        run: |
+          echo "===== SERVER LOG ====="
+          cat server.log || true
+
+          echo ""
+          echo "===== OLLAMA LOG ====="
+          cat ollama.log || true
