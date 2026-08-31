@@ -14,7 +14,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const jsonDB = require("./services/jsonDB");
 const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, {
-    polling: true
+    polling: process.env.BOT_POLLING !== "false"
 });
 
 app.use(helmet());
