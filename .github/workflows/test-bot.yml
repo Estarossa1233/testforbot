@@ -1,1 +1,65 @@
 
+name: Test Bot Ollama
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Ollama
+        run: |
+          curl -fsSL https://ollama.com/install.sh | sh
+
+      - name: Start Ollama
+        run: |
+          ollama serve > ollama.log 2>&1 &
+          sleep 10
+
+      - name: Download AI model
+        run: |
+          ollama pull qwen2.5:1.5b
+
+      - name: Install dependencies
+        run: |
+          npm install
+
+      - name: Test Ollama
+        run: |
+          node - <<'NODE'
+          const axios = require("axios");
+
+          async function test() {
+            const response = await axios.post(
+              "http://127.0.0.1:11434/api/chat",
+              {
+                model: "qwen2.5:1.5b",
+                stream: false,
+                messages: [
+                  {
+                    role: "user",
+                    content: "Jawab singkat: apakah kamu aktif?"
+                  }
+                ]
+              }
+            );
+
+            console.log("Jawaban Ollama:");
+            console.log(response.data.message.content);
+          }
+
+          test().catch(err => {
+            console.error(err.response?.data || err.message);
+            process.exit(1);
+          });
+          NODE
