@@ -6,6 +6,10 @@ const helmet = require("helmet");
 const morgan = require("morgan");
 const path = require("path");
 const TelegramBot = require("node-telegram-bot-api");
+const TelegramBotModule = require("node-telegram-bot-api");
+
+const TelegramBot =
+    TelegramBotModule.default || TelegramBotModule;
 const { askOllama, MODEL } = require("./services/ollama"); 
 const bonus = require("./prompt/bonus");
 const gameGacor = require("./prompt/game gacor");
