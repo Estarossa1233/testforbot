@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>IMBAJP TEST Dashboard</title>
+
+    <link rel="stylesheet" href="style.css">
+
+</head>
+
+<body>
+
+    <div class="sidebar">
+
+        <div class="logo">
+
+            <h2>IMBAJP</h2>
+            <p>Dashboard</p>
+
+        </div>
+
+        <ul id="sidebarMenu">
+
+            <li class="active" data-page="dashboard">
+                🏠 Dashboard
+            </li>
+
+            <li data-page="ai-chat">
+                🤖 AI Chat
+            </li>
+
+            <li data-page="chat-history">
+                📋 Chat History
+            </li>
+
+            <li data-page="users">
+                👥 Users
+            </li>
+
+            <li data-page="settings">
+                ⚙ Settings
+            </li>
+
+        </ul>
+
+    </div>
+
+
+    <div class="main">
+
+        <header>
+
+            <h1 id="pageTitle">
+                IMBAJP DASHBOARD TESTING
+            </h1>
+
+            <div class="status">
+
+                <span id="serverStatus">
+                    Checking...
+                </span>
+
+            </div>
+
+        </header>
+
+
+        <div id="pageContent"></div>
+
+    </div>
+
+
+    <script src="app.js"></script>
+
+</body>
+
+</html>
