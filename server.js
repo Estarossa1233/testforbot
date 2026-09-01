@@ -120,25 +120,27 @@ app.post("/api/messages/:id/send", async (req, res) => {
     }
 });
 
-bot.on("message", async (msg) => {
-    try {
+if (bot) {
+    bot.on("message", async (msg) => {
+         try {
+
         const chatId = msg.chat.id;
+
         const text = msg.text;
-
-        jsonDB.addUser({
-
-    telegram_id: chatId,
-
-    username: msg.from.username || "",
-
-    first_name: msg.from.first_name || "",
-
-    last_name: msg.from.last_name || "",
-
+                jsonDB.addUser({ 
+ 
+    telegram_id: chatId, 
+ 
+    username: msg.from.username || "", 
+ 
+    first_name: msg.from.first_name || "", 
+ 
+    last_name: msg.from.last_name || "", 
+ 
     last_active: new Date().toLocaleString("id-ID")
 
-});
-
+    });
+}
         // Abaikan pesan kosong
         if (!text) return;
 
