@@ -17,9 +17,17 @@ const pola = require("./prompt/pola");
 const app = express();
 const PORT = process.env.PORT || 3000;
 const jsonDB = require("./services/jsonDB");
-const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, {
-    polling: process.env.BOT_POLLING !== "false"
-});
+let bot = null;
+
+if (process.env.BOT_POLLING !== "false") {
+    const TelegramBotModule = require("node-telegram-bot-api");
+    const TelegramBot =
+        TelegramBotModule.default || TelegramBotModule;
+
+    bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, {
+        polling: true
+    });
+}
 
 app.use(helmet());
 app.use(cors());
