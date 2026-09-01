@@ -122,118 +122,110 @@ app.post("/api/messages/:id/send", async (req, res) => {
 
 if (bot) {
     bot.on("message", async (msg) => {
-         try {
+        try {
+            const chatId = msg.chat.id;
+            const text = msg.text;
 
-        const chatId = msg.chat.id;
+            jsonDB.addUser({
+                telegram_id: chatId,
+                username: msg.from.username || "",
+                first_name: msg.from.first_name || "",
+                last_name: msg.from.last_name || "",
+                last_active: new Date().toLocaleString("id-ID")
+            });
 
-        const text = msg.text;
-                jsonDB.addUser({ 
- 
-    telegram_id: chatId, 
- 
-    username: msg.from.username || "", 
- 
-    first_name: msg.from.first_name || "", 
- 
-    last_name: msg.from.last_name || "", 
- 
-    last_active: new Date().toLocaleString("id-ID")
+            // Abaikan pesan kosong
+            if (!text) return;
 
+            jsonDB.addMessage({
+                telegram_id: chatId,
+                sender: "user",
+                text,
+                time: new Date().toLocaleString("id-ID")
+            });
+
+            // Command /start
+            if (text === "/start") {
+                await new Promise(resolve => setTimeout(resolve, 1500));
+
+                await bot.sendMessage(
+                    chatId,
+                    "👋 Hallo kakk"
+                );
+
+                await new Promise(resolve => setTimeout(resolve, 1000));
+
+                await bot.sendMessage(
+                    chatId,
+                    "Selamat datang di IMBAJP,Dengan Lanny Admin kesayangan mu ada yang bisa di bantu?"
+                );
+            }
+
+            if (text === "kak,kakk,hallo,hallo kak") {
+                await new Promise(resolve => setTimeout(resolve, 1500));
+
+                await bot.sendMessage(
+                    chatId,
+                    "Iya Hallo kakk ada yang bisa Lany bantu?"
+                );
+            }
+
+            // Abaikan command lain
+            if (text.startsWith("/")) return;
+
+            await bot.sendChatAction(chatId, "typing");
+
+            const lower = text.toLowerCase().trim();
+
+            // Perintah khusus pola
+            if (
+                text === "pola" ||
+                text === "pola gacor" ||
+                text === "pola hari ini"
+            ) {
+                await new Promise(resolve => setTimeout(resolve, 2000));
+
+                return bot.sendMessage(chatId, pola);
+            }
+
+            // Perintah bonus
+            if (lower.includes("bonus")) {
+                await new Promise(resolve => setTimeout(resolve, 2000));
+
+                return bot.sendMessage(chatId, bonus);
+            }
+
+            // Perintah game gacor
+            if (lower.includes("game gacor")) {
+                await new Promise(resolve => setTimeout(resolve, 2000));
+
+                return bot.sendMessage(chatId, gameGacor);
+            }
+
+            // AI Ollama
+            const reply = await askOllama(text);
+
+            jsonDB.addMessage({
+                telegram_id: chatId,
+                sender: "bot",
+                text: reply,
+                time: new Date().toLocaleString("id-ID")
+            });
+
+            await bot.sendMessage(chatId, reply);
+
+        } catch (err) {
+            console.error(err);
+
+            if (bot) {
+                bot.sendMessage(
+                    msg.chat.id,
+                    "⚠️ AI sedang offline."
+                );
+            }
+        }
     });
 }
-        // Abaikan pesan kosong
-        if (!text) return;
-
-        jsonDB.addMessage({
-
-    telegram_id: chatId,
-
-    sender: "user",
-
-    text,
-
-    time: new Date().toLocaleString("id-ID")
-
-});
-
-        // Command /start
-        if (text === "/start") {
-          await new Promise(resolve => setTimeout(resolve, 1500));
-            await bot.sendMessage(
-                chatId,
-                "👋 Hallo kakk"
-            );
-
-          await new Promise(resolve => setTimeout(resolve, 1000));
-            await bot.sendMessage(
-                chatId,
-                "Selamat datang di IMBAJP,Dengan Lanny Admin kesayangan mu ada yang bisa di bantu?"
-            );
-        }
-        if (text === "kak,kakk,hallo,hallo kak") {
-          await new Promise(resolve => setTimeout(resolve, 1500));
-            await bot.sendMessage(
-                chatId,
-                "Iya Hallo kakk ada yang bisa Lany bantu?"
-            );
-         }    
-        // Abaikan command lain
-        if (text.startsWith("/")) return;
-
-        await bot.sendChatAction(chatId, "typing");
-
-         const lower = text.toLowerCase().trim();
-
-        // Perintah khusus
-        if (
-      text === "pola" ||
-      text === "pola gacor" ||
-      text === "pola hari ini"
-    ) {
-     await new Promise(resolve => setTimeout(resolve, 2000));
-
-      return bot.sendMessage(chatId, pola);
-    }
-    if (lower.includes("bonus")) {
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    return bot.sendMessage(chatId, bonus);
-    }
-
-    if (lower.includes("game gacor")) {
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    return bot.sendMessage(chatId, gameGacor);
-}
-
-    
-
-        const reply = await askOllama(text);
-
-jsonDB.addMessage({
-
-    telegram_id: chatId,
-
-    sender: "bot",
-
-    text: reply,
-
-    time: new Date().toLocaleString("id-ID")
-
-});
-
-await bot.sendMessage(chatId, reply);
-
-    } catch (err) {
-        console.error(err);
-
-        bot.sendMessage(
-            msg.chat.id,
-            "⚠️ AI sedang offline."
-        );
-    }
-});
-
 app.get("/api/status", (req, res) => {
   res.json({
     success: true,
