@@ -31,7 +31,7 @@ jobs:
 
       - name: Download AI model
         run: |
-          ollama pull qwen2.5:1.5b
+          ollama pull qwen2.5:7b
 
       - name: Install dependencies
         run: |
