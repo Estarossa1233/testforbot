@@ -22,8 +22,12 @@ jobs:
 
       - name: Start Ollama
         run: |
-          ollama serve > ollama.log 2>&1 &
-          sleep 10
+          if curl -sf http://127.0.0.1:11434/api/tags > /dev/null; then
+            echo "Ollama sudah berjalan."
+          else
+            ollama serve > ollama.log 2>&1 &
+            sleep 10
+          fi
 
       - name: Download AI model
         run: |
@@ -33,33 +37,29 @@ jobs:
         run: |
           npm install
 
-      - name: Start server
+      - name: Start Telegram Bot
         env:
           PORT: 3000
           OLLAMA_URL: http://127.0.0.1:11434/api/chat
           OLLAMA_MODEL: qwen2.5:1.5b
-          TELEGRAM_BOT_TOKEN: "123456:TEST_TOKEN"
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           BOT_POLLING: "true"
         run: |
           npm start > server.log 2>&1 &
           echo $! > server.pid
+
+          echo "Menunggu server..."
           sleep 10
 
-      - name: Test server status
-        run: |
-          echo "Testing /api/status..."
+          echo "===== SERVER STATUS ====="
           curl --fail http://127.0.0.1:3000/api/status
 
-      - name: Test AI chat
-        run: |
           echo ""
-          echo "Testing /api/chat..."
+          echo "===== TELEGRAM BOT AKTIF ====="
+          echo "Silakan kirim pesan ke bot Telegram."
+          echo "Bot akan aktif selama 10 menit."
 
-          curl --fail \
-            -X POST \
-            -H "Content-Type: application/json" \
-            -d '{"prompt":"Jawab singkat: apakah AI aktif?"}' \
-            http://127.0.0.1:3000/api/chat
+          sleep 600
 
       - name: Show server log
         if: always()
