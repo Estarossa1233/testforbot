@@ -5,22 +5,22 @@ const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
 const path = require("path");
-const TelegramBot = require("node-telegram-bot-api");
-const TelegramBotModule = require("node-telegram-bot-api");
 
-const TelegramBot =
-    TelegramBotModule.default || TelegramBotModule;
-const { askOllama, MODEL } = require("./services/ollama"); 
+const { askOllama, MODEL } = require("./services/ollama");
 const bonus = require("./prompt/bonus");
 const gameGacor = require("./prompt/game gacor");
 const pola = require("./prompt/pola");
+
 const app = express();
 const PORT = process.env.PORT || 3000;
+
 const jsonDB = require("./services/jsonDB");
+
 let bot = null;
 
 if (process.env.BOT_POLLING !== "false") {
     const TelegramBotModule = require("node-telegram-bot-api");
+
     const TelegramBot =
         TelegramBotModule.default || TelegramBotModule;
 
