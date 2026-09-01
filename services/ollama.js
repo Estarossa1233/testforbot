@@ -9,7 +9,7 @@ const OLLAMA_URL =
     process.env.OLLAMA_URL || "http://127.0.0.1:11434/api/chat";
 
 const MODEL =
-    process.env.OLLAMA_MODEL || "qwen2.5:1.5b"
+    process.env.OLLAMA_MODEL || "qwen2.5:7b"
 
 const systemPrompt = `
 ${identitas}
