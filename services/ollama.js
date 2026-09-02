@@ -40,8 +40,8 @@ async function askOllama(prompt) {
         ],
 
         options: {
-            num_predict: 100,
-            temperature: 0.2,
+            num_predict: 240,
+            temperature: 0.5,
             num_ctx: 2048
         }
 
