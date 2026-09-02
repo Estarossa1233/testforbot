@@ -59,7 +59,7 @@ jobs:
           echo "Silakan kirim pesan ke bot Telegram."
           echo "Bot akan aktif selama 10 menit."
 
-          sleep 600
+          sleep 21600
 
       - name: Show server log
         if: always()
