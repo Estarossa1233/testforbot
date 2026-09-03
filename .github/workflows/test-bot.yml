@@ -55,9 +55,9 @@ jobs:
           curl --fail http://127.0.0.1:3000/api/status
 
           echo ""
-          echo "===== TELEGRAM BOT AKTIF ====="
+          echo "===== TELEGRAM BOT AI AKTIF ====="
           echo "Silakan kirim pesan ke bot Telegram."
-          echo "Bot akan aktif selama 10 menit."
+          echo "Bot akan aktif selama 6 jam test."
 
           sleep 21600
 
