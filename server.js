@@ -20,8 +20,17 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const db = require("./services/database");
 const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, {
-    polling: true
+    polling: false
 });
+
+bot.on("polling_error", (error) => {
+    console.error("TELEGRAM POLLING ERROR:", error.message);
+});
+
+bot.on("error", (error) => {
+    console.error("TELEGRAM BOT ERROR:", error.message);
+});
+
 const pendingWithdraw = new Map();
 
 
@@ -87,6 +96,12 @@ app.post("/api/messages/:id/send", async (req, res) => {
 
 
 bot.on("message", async (msg) => {
+    console.log("==================================");
+    console.log("TELEGRAM MESSAGE MASUK");
+    console.log("Chat ID :", msg.chat.id);
+    console.log("Text    :", msg.text || "(non-text)");
+    console.log("From ID :", msg.from?.id);
+    console.log("==================================");
     try {
         const chatId = msg.chat.id;
         const text = msg.text;
@@ -296,6 +311,30 @@ await bot.sendMessage(chatId, reply);
         );
     }
 });
+
+// =========================
+// START TELEGRAM POLLING
+// =========================
+(async () => {
+    try {
+        await bot.deleteWebHook();
+
+        const me = await bot.getMe();
+
+        console.log("==================================");
+        console.log(" TELEGRAM BOT CONNECTED");
+        console.log(" BOT USERNAME :", me.username);
+        console.log(" BOT ID       :", me.id);
+        console.log("==================================");
+
+        await bot.startPolling();
+
+        console.log("Telegram polling started.");
+    } catch (error) {
+        console.error("TELEGRAM START ERROR:");
+        console.error(error.message);
+    }
+})();
 
 app.get("/api/status", (req, res) => {
   res.json({
