@@ -77,7 +77,12 @@ jobs:
           echo "Silakan kirim pesan ke bot Telegram."
           echo "Bot akan aktif selama 6 jam test."
 
-          sleep 21600
+          for i in {1..360}; do
+            echo ""
+            echo "===== SERVER LOG $(date) ====="
+            tail -n 50 server.log
+            sleep 60
+          done
 
       - name: Show server log
         if: always()
