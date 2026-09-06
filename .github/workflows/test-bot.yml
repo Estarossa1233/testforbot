@@ -36,6 +36,26 @@ jobs:
         run: |
           npm install
 
+                - name: Test Aiven DNS
+        env:
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+        run: |
+          echo "===== TEST AIVEN DNS ====="
+          echo "Host length: ${#DB_HOST}"
+          echo "Port: $DB_PORT"
+
+          echo "===== DNS LOOKUP ====="
+          getent hosts "$DB_HOST" || true
+
+          echo "===== DNS CHECK ====="
+          if getent hosts "$DB_HOST" > /dev/null 2>&1; then
+            echo "✅ DB_HOST berhasil ditemukan"
+          else
+            echo "❌ DB_HOST tidak bisa ditemukan"
+            exit 1
+          fi
+
       - name: Start Telegram Bot
         env:
           PORT: 3000
