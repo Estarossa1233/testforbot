@@ -2,18 +2,19 @@ const axios = require("axios");
 
 const identitas = require("../prompt/identitas");
 const rules = require("../prompt/rules");
-const bonus = require("../prompt/bonus");
-const pola = require("../prompt/pola");
+const rungkat = require("../prompt/rungkat");
+
 
 const OLLAMA_URL =
     process.env.OLLAMA_URL || "http://127.0.0.1:11434/api/chat";
 
 const MODEL =
-    process.env.OLLAMA_MODEL || "qwen2.5:7b"
+    process.env.OLLAMA_MODEL || "qwen2.5:1.5b"
 
 const systemPrompt = `
 ${identitas}
 ${rules}
+${rungkat}
 `;
 
 async function askOllama(prompt) {
@@ -40,8 +41,8 @@ async function askOllama(prompt) {
         ],
 
         options: {
-            num_predict: 240,
-            temperature: 0.5,
+            num_predict: 100,
+            temperature: 0.2,
             num_ctx: 2048
         }
 
