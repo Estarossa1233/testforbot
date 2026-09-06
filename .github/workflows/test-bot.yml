@@ -36,7 +36,7 @@ jobs:
         run: |
           npm install
 
-                - name: Test Aiven DNS
+      - name: Test Aiven DNS
         env:
           DB_HOST: ${{ secrets.DB_HOST }}
           DB_PORT: ${{ secrets.DB_PORT }}
