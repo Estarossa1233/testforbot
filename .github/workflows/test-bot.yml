@@ -22,12 +22,11 @@ jobs:
 
       - name: Start Ollama
         run: |
-          if curl -sf http://127.0.0.1:11434/api/tags > /dev/null; then
-            echo "Ollama sudah berjalan."
-          else
-            ollama serve > ollama.log 2>&1 &
-            sleep 10
-          fi
+          ollama serve > ollama.log 2>&1 &
+          sleep 10
+
+          echo "===== OLLAMA STATUS ====="
+          curl --fail http://127.0.0.1:11434/api/tags
 
       - name: Download AI model
         run: |
@@ -40,10 +39,29 @@ jobs:
       - name: Start Telegram Bot
         env:
           PORT: 3000
+
+          # =========================
+          # OLLAMA
+          # =========================
           OLLAMA_URL: http://127.0.0.1:11434/api/chat
           OLLAMA_MODEL: qwen2.5:7b
+
+          # =========================
+          # AIVEN MYSQL
+          # =========================
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_CA_PATH: ./certs/ca.pem
+
+          # =========================
+          # TELEGRAM
+          # =========================
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          BOT_POLLING: "true"
+          ADMIN_TELEGRAM_ID: ${{ secrets.ADMIN_TELEGRAM_ID }}
+
         run: |
           npm start > server.log 2>&1 &
           echo $! > server.pid
