@@ -1,33 +1,29 @@
 require("dotenv").config();
 
+const { testConnection } = require("./services/database");
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
 const path = require("path");
+const TelegramBotModule = require("node-telegram-bot-api");
 
-const { askOllama, MODEL } = require("./services/ollama");
+const TelegramBot =
+    TelegramBotModule.default || TelegramBotModule;
+const { askOllama, MODEL } = require("./services/ollama"); 
 const bonus = require("./prompt/bonus");
 const gameGacor = require("./prompt/game gacor");
 const pola = require("./prompt/pola");
+const withdraw = require("./prompt/withdraw");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const db = require("./services/database");
+const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, {
+    polling: true
+});
+const pendingWithdraw = new Map();
 
-const jsonDB = require("./services/jsonDB");
-
-let bot = null;
-
-if (process.env.BOT_POLLING !== "false") {
-    const TelegramBotModule = require("node-telegram-bot-api");
-
-    const TelegramBot =
-        TelegramBotModule.default || TelegramBotModule;
-
-    bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, {
-        polling: true
-    });
-}
 
 app.use(helmet());
 app.use(cors());
@@ -35,38 +31,6 @@ app.use(express.json());
 app.use(morgan("dev"));
 
 app.use(express.static(path.join(__dirname, "public")));
-
-// =======================
-// API USERS
-// =======================
-
-app.get("/api/users", (req, res) => {
-
-    const users = jsonDB.read("users.json", []);
-
-    res.json({
-        success: true,
-        users
-    });
-
-});
-
-// =======================
-// API MESSAGES
-// =======================
-
-app.get("/api/messages/:id", (req, res) => {
-
-    const chatId = Number(req.params.id);
-
-    const messages = jsonDB.getMessages(chatId);
-
-    res.json({
-        success: true,
-        messages
-    });
-
-});
 
 // =======================
 // API MANUAL CHAT ADMIN
@@ -95,19 +59,19 @@ app.post("/api/messages/:id/send", async (req, res) => {
 
         // Kirim langsung ke Telegram
         await bot.sendMessage(chatId, messageText);
-
-        // Simpan pesan admin ke database
-        jsonDB.addMessage({
+            await db.addMessage({
             telegram_id: chatId,
             sender: "admin",
             text: messageText,
-            time: new Date().toLocaleString("id-ID")
+            time: new Date()
         });
 
         res.json({
             success: true,
             message: "Pesan berhasil dikirim."
         });
+        // Simpan pesan admin ke database
+        
 
     } catch (err) {
 
@@ -120,112 +84,219 @@ app.post("/api/messages/:id/send", async (req, res) => {
     }
 });
 
-if (bot) {
-    bot.on("message", async (msg) => {
-        try {
-            const chatId = msg.chat.id;
-            const text = msg.text;
 
-            jsonDB.addUser({
-                telegram_id: chatId,
-                username: msg.from.username || "",
-                first_name: msg.from.first_name || "",
-                last_name: msg.from.last_name || "",
-                last_active: new Date().toLocaleString("id-ID")
-            });
 
-            // Abaikan pesan kosong
-            if (!text) return;
+bot.on("message", async (msg) => {
+    try {
+        const chatId = msg.chat.id;
+        const text = msg.text;
 
-            jsonDB.addMessage({
-                telegram_id: chatId,
-                sender: "user",
-                text,
-                time: new Date().toLocaleString("id-ID")
-            });
+        // =========================
+        // ADMIN SET BOCORAN
+        // =========================
+        if (
+            msg.from.id.toString() === process.env.ADMIN_TELEGRAM_ID &&
+            msg.photo
+        ) {
+            const photo = msg.photo[msg.photo.length - 1];
 
-            // Command /start
-            if (text === "/start") {
-                await new Promise(resolve => setTimeout(resolve, 1500));
+            await db.saveBocoran(
+                photo.file_id,
+                msg.caption || ""
+            );
 
-                await bot.sendMessage(
-                    chatId,
-                    "👋 Hallo kakk"
-                );
+            await bot.sendMessage(
+                chatId,
+                "✅ Bocoran game terbaru sudah disimpan."
+            );
 
-                await new Promise(resolve => setTimeout(resolve, 1000));
-
-                await bot.sendMessage(
-                    chatId,
-                    "Selamat datang di IMBAJP,Dengan Lanny Admin kesayangan mu ada yang bisa di bantu?"
-                );
-            }
-
-            if (text === "kak,kakk,hallo,hallo kak") {
-                await new Promise(resolve => setTimeout(resolve, 1500));
-
-                await bot.sendMessage(
-                    chatId,
-                    "Iya Hallo kakk ada yang bisa Lany bantu?"
-                );
-            }
-
-            // Abaikan command lain
-            if (text.startsWith("/")) return;
-
-            await bot.sendChatAction(chatId, "typing");
-
-            const lower = text.toLowerCase().trim();
-
-            // Perintah khusus pola
-            if (
-                text === "pola" ||
-                text === "pola gacor" ||
-                text === "pola hari ini"
-            ) {
-                await new Promise(resolve => setTimeout(resolve, 2000));
-
-                return bot.sendMessage(chatId, pola);
-            }
-
-            // Perintah bonus
-            if (lower.includes("bonus")) {
-                await new Promise(resolve => setTimeout(resolve, 2000));
-
-                return bot.sendMessage(chatId, bonus);
-            }
-
-            // Perintah game gacor
-            if (lower.includes("game gacor")) {
-                await new Promise(resolve => setTimeout(resolve, 2000));
-
-                return bot.sendMessage(chatId, gameGacor);
-            }
-
-            // AI Ollama
-            const reply = await askOllama(text);
-
-            jsonDB.addMessage({
-                telegram_id: chatId,
-                sender: "bot",
-                text: reply,
-                time: new Date().toLocaleString("id-ID")
-            });
-
-            await bot.sendMessage(chatId, reply);
-
-        } catch (err) {
-            console.error(err);
-
-            if (bot) {
-                bot.sendMessage(
-                    msg.chat.id,
-                    "⚠️ AI sedang offline."
-                );
-            }
+            return;
         }
-    });
+
+        // =========================
+        // SIMPAN USER
+        // =========================
+        await db.addUser({
+            telegram_id: chatId,
+            username: msg.from.username || "",
+            first_name: msg.from.first_name || "",
+            last_name: msg.from.last_name || "",
+            last_active: new Date()
+        });
+
+        // =========================
+        // ABAIKAN PESAN TANPA TEXT
+        // =========================
+        if (!text) return;
+
+        await db.addMessage({
+    telegram_id: chatId,
+    sender: "user",
+    text,
+    time: new Date()
+});
+
+        // Command /start
+        if (text === "/start") {
+          await new Promise(resolve => setTimeout(resolve, 1500));
+            await bot.sendMessage(
+                chatId,
+                "👋 Hallo kakk"
+            );
+
+          await new Promise(resolve => setTimeout(resolve, 1000));
+            await bot.sendMessage(
+                chatId,
+                "Selamat datang di IMBAJP,Dengan Lanny Admin kesayangan mu ada yang bisa di bantu?"
+            );
+        }
+        if (text === "kak,kakk,hallo,hallo kak") {
+          await new Promise(resolve => setTimeout(resolve, 1500));
+            await bot.sendMessage(
+                chatId,
+                "Iya Hallo kakk ada yang bisa Lany bantu?"
+            );
+         }    
+        // Abaikan command lain
+        if (text.startsWith("/")) return;
+
+        await bot.sendChatAction(chatId, "typing");
+
+         const lower = text.toLowerCase().trim();
+
+         // =========================
+// USER SUDAH DIMINTA USERNAME
+// =========================
+if (pendingWithdraw.has(chatId)) {
+
+    const username = text.trim();
+
+    pendingWithdraw.delete(chatId);
+
+    console.log(
+        `Withdraw ${chatId} - Username: ${username}`
+    );
+
+    await new Promise(resolve =>
+        setTimeout(resolve, 2000)
+    );
+
+    await bot.sendMessage(
+        chatId,
+        withdraw.messages[0]
+    );
+
+    await new Promise(resolve =>
+        setTimeout(resolve, 2000)
+    );
+
+    await bot.sendMessage(
+        chatId,
+        withdraw.messages[1]
+    );
+
+    return;
 }
+
+// =========================
+// USER MEMINTA PROSES WITHDRAW
+// =========================
+if (
+    withdraw.keywords.some(keyword =>
+        lower.includes(keyword)
+    )
+) {
+
+    pendingWithdraw.set(chatId, true);
+
+    await bot.sendMessage(
+        chatId,
+        withdraw.askUsername
+    );
+
+    return;
+}
+         
+        // Perintah khusus
+        if (
+      text === "pola" ||
+      text === "pola gacor" ||
+      text === "pola hari ini"
+    ) {
+     await new Promise(resolve => setTimeout(resolve, 2000));
+
+      return bot.sendMessage(chatId, pola);
+    }
+    if (lower.includes("bonus")) {
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    return bot.sendMessage(chatId, bonus);
+    }
+
+    if (lower.includes("game gacor")) {
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    return bot.sendMessage(chatId, gameGacor);
+    }
+
+    // =========================
+// USER REQUEST BOCORAN
+// =========================
+if (
+    [
+        "bocoran",
+        "bocoran game",
+        "bocoran terbaru",
+        "game lain",
+        "game apa",
+        "game bagus"
+    ].some(keyword => lower.includes(keyword))
+) {
+    await new Promise(resolve =>
+        setTimeout(resolve, 1000)
+    );
+
+    const bocoran = await db.getLatestBocoran();
+
+    if (!bocoran) {
+        return bot.sendMessage(
+            chatId,
+            "Maaf yaa kakk, bocoran terbaru belum tersedia."
+        );
+    }
+
+    await bot.sendPhoto(
+        chatId,
+        bocoran.file_id,
+        {
+            caption: bocoran.caption || ""
+        }
+    );
+
+    return;
+}
+
+    const reply = await askOllama(text);
+
+    await db.addMessage({
+        telegram_id: chatId,
+        sender: "bot",
+        text: reply,
+        time: new Date()
+});
+
+await bot.sendMessage(chatId, reply);
+
+    } catch (err) {
+        console.error(err);
+
+        bot.sendMessage(
+            msg.chat.id,
+            "⚠️ AI sedang offline."
+        );
+    }
+});
+
 app.get("/api/status", (req, res) => {
   res.json({
     success: true,
@@ -280,6 +351,6 @@ app.listen(PORT, () => {
   console.log("----------------------------------");
   console.log(`Server : http://localhost:${PORT}`);
   console.log(`Model  : ${MODEL}`);
-  console.log("----------------------------------");
-  console.log("JSON Database Ready");
+
+  testConnection();
 });
