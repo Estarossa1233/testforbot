@@ -38,8 +38,9 @@ jobs:
 
       - name: Test Aiven DNS
         env:
-            DB_HOST: mysql-65b8a81-duyencavez-9525.d.aivencloud.com
-            DB_PORT: 15364
+          DB_HOST: mysql-65b8a81-duyencavez-9525.d.aivencloud.com
+          DB_PORT: 15364
+          
         run: |
           echo "===== TEST AIVEN DNS ====="
           echo "Host length: ${#DB_HOST}"
@@ -69,11 +70,11 @@ jobs:
           # =========================
           # AIVEN MYSQL
           # =========================
-          DB_HOST: ${{ secrets.DB_HOST }}
-          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_HOST: mysql-65b8a81-duyencavez-9525.d.aivencloud.com
+          DB_PORT: 15364
           DB_USER: ${{ secrets.DB_USER }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_NAME: defaultdb
           DB_CA_PATH: ./certs/ca.pem
 
           # =========================
