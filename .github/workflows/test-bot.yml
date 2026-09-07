@@ -14,7 +14,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
 
       - name: Install Ollama
         run: |
@@ -22,8 +22,13 @@ jobs:
 
       - name: Start Ollama
         run: |
-          ollama serve > ollama.log 2>&1 &
-          sleep 10
+          if curl -sf http://127.0.0.1:11434/api/tags > /dev/null; then
+            echo "✅ Ollama sudah berjalan"
+          else
+            echo "Ollama belum berjalan, starting..."
+            ollama serve > ollama.log 2>&1 &
+            sleep 10
+          fi
 
           echo "===== OLLAMA STATUS ====="
           curl --fail http://127.0.0.1:11434/api/tags
@@ -40,22 +45,30 @@ jobs:
         env:
           DB_HOST: mysql-65b8a81-duyencavez-9525.d.aivencloud.com
           DB_PORT: 15364
-          
         run: |
-          echo "===== TEST AIVEN DNS ====="
-          echo "Host length: ${#DB_HOST}"
+          echo "===== AIVEN DNS TEST ====="
+          echo "Host: $DB_HOST"
           echo "Port: $DB_PORT"
 
-          echo "===== DNS LOOKUP ====="
-          getent hosts "$DB_HOST" || true
+          echo ""
+          echo "===== GETENT ====="
+          getent hosts "$DB_HOST" || echo "GETENT: tidak ditemukan"
 
-          echo "===== DNS CHECK ====="
-          if getent hosts "$DB_HOST" > /dev/null 2>&1; then
-            echo "✅ DB_HOST berhasil ditemukan"
-          else
-            echo "❌ DB_HOST tidak bisa ditemukan"
-            exit 1
-          fi
+          echo ""
+          echo "===== NSLOOKUP GOOGLE ====="
+          nslookup "$DB_HOST" 8.8.8.8 || true
+
+          echo ""
+          echo "===== NSLOOKUP CLOUDFLARE ====="
+          nslookup "$DB_HOST" 1.1.1.1 || true
+
+          echo ""
+          echo "===== DIG GOOGLE ====="
+          dig "$DB_HOST" @8.8.8.8 || true
+
+          echo ""
+          echo "===== DIG CLOUDFLARE ====="
+          dig "$DB_HOST" @1.1.1.1 || true
 
       - name: Start Telegram Bot
         env:
