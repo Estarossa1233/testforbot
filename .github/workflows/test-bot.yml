@@ -8,81 +8,119 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # =========================
+      # CHECKOUT
+      # =========================
       - name: Checkout project
         uses: actions/checkout@v4
 
+      # =========================
+      # NODE.JS
+      # =========================
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 24
 
+      # =========================
+      # OLLAMA
+      # =========================
       - name: Install Ollama
         run: |
           curl -fsSL https://ollama.com/install.sh | sh
 
       - name: Start Ollama
         run: |
+          echo "===== CHECK OLLAMA ====="
+
           if curl -sf http://127.0.0.1:11434/api/tags > /dev/null; then
             echo "✅ Ollama sudah berjalan"
           else
             echo "Ollama belum berjalan, starting..."
+
             ollama serve > ollama.log 2>&1 &
-            sleep 10
+
+            echo "Menunggu Ollama..."
+            for i in {1..30}; do
+              if curl -sf http://127.0.0.1:11434/api/tags > /dev/null; then
+                echo "✅ Ollama berhasil berjalan"
+                break
+              fi
+
+              sleep 2
+            done
           fi
 
+          echo ""
           echo "===== OLLAMA STATUS ====="
           curl --fail http://127.0.0.1:11434/api/tags
 
       - name: Download AI model
         run: |
+          echo "===== DOWNLOAD MODEL ====="
           ollama pull qwen2.5:7b
 
+          echo ""
+          echo "===== MODEL CHECK ====="
+          ollama list
+
+      # =========================
+      # NODE DEPENDENCIES
+      # =========================
       - name: Install dependencies
         run: |
           npm install
 
+      # =========================
+      # TEST AIVEN DNS
+      # =========================
       - name: Test Aiven DNS
         env:
           DB_HOST: mysql-65b8a81-duyencavez-9525.d.aivencloud.com
           DB_PORT: 15364
         run: |
-          echo "===== AIVEN DNS TEST ====="
-          echo "Host: $DB_HOST"
-          echo "Port: $DB_PORT"
+          echo "=================================="
+          echo " AIVEN DNS TEST"
+          echo "=================================="
+
+          echo "Host : $DB_HOST"
+          echo "Port : $DB_PORT"
 
           echo ""
           echo "===== GETENT ====="
-          getent hosts "$DB_HOST" || echo "GETENT: tidak ditemukan"
+          getent hosts "$DB_HOST" || echo "❌ GETENT tidak menemukan host"
 
           echo ""
-          echo "===== NSLOOKUP GOOGLE ====="
+          echo "===== NSLOOKUP GOOGLE DNS ====="
           nslookup "$DB_HOST" 8.8.8.8 || true
 
           echo ""
-          echo "===== NSLOOKUP CLOUDFLARE ====="
+          echo "===== NSLOOKUP CLOUDFLARE DNS ====="
           nslookup "$DB_HOST" 1.1.1.1 || true
 
           echo ""
-          echo "===== DIG GOOGLE ====="
-          dig "$DB_HOST" @8.8.8.8 || true
+          echo "===== DIG GOOGLE DNS ====="
+          dig +short "$DB_HOST" @8.8.8.8 || true
 
           echo ""
-          echo "===== DIG CLOUDFLARE ====="
-          dig "$DB_HOST" @1.1.1.1 || true
+          echo "===== DIG CLOUDFLARE DNS ====="
+          dig +short "$DB_HOST" @1.1.1.1 || true
 
+          echo ""
+          echo "===== AIVEN DNS TEST SELESAI ====="
+
+      # =========================
+      # START BOT
+      # =========================
       - name: Start Telegram Bot
         env:
           PORT: 3000
 
-          # =========================
           # OLLAMA
-          # =========================
           OLLAMA_URL: http://127.0.0.1:11434/api/chat
           OLLAMA_MODEL: qwen2.5:7b
 
-          # =========================
           # AIVEN MYSQL
-          # =========================
           DB_HOST: mysql-65b8a81-duyencavez-9525.d.aivencloud.com
           DB_PORT: 15364
           DB_USER: ${{ secrets.DB_USER }}
@@ -90,40 +128,85 @@ jobs:
           DB_NAME: defaultdb
           DB_CA_PATH: ./certs/ca.pem
 
-          # =========================
           # TELEGRAM
-          # =========================
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           ADMIN_TELEGRAM_ID: ${{ secrets.ADMIN_TELEGRAM_ID }}
 
         run: |
+          echo "=================================="
+          echo " STARTING IMBAJP BOT"
+          echo "=================================="
+
           npm start > server.log 2>&1 &
           echo $! > server.pid
 
+          echo "PID: $(cat server.pid)"
+
+          echo ""
           echo "Menunggu server..."
           sleep 10
 
+          echo ""
           echo "===== SERVER STATUS ====="
           curl --fail http://127.0.0.1:3000/api/status
 
           echo ""
-          echo "===== TELEGRAM BOT AI AKTIF ====="
-          echo "Silakan kirim pesan ke bot Telegram."
-          echo "Bot akan aktif selama 6 jam test."
+          echo "=================================="
+          echo " TELEGRAM BOT AI AKTIF"
+          echo "=================================="
+          echo "Bot akan aktif selama 6 jam."
 
           for i in {1..360}; do
+
             echo ""
-            echo "===== SERVER LOG $(date) ====="
-            tail -n 50 server.log
+            echo "=================================="
+            echo " SERVER LOG $(date)"
+            echo "=================================="
+
+            if [ -f server.log ]; then
+              tail -n 80 server.log
+            else
+              echo "server.log belum tersedia"
+            fi
+
+            echo ""
+            echo "=================================="
+            echo " OLLAMA CHECK"
+            echo "=================================="
+
+            curl -sf http://127.0.0.1:11434/api/tags > /dev/null \
+              && echo "✅ Ollama masih aktif" \
+              || echo "❌ Ollama tidak merespons"
+
+            echo ""
+            echo "Menunggu 60 detik..."
+
             sleep 60
           done
 
+      # =========================
+      # LOG JIKA SELESAI / GAGAL
+      # =========================
       - name: Show server log
         if: always()
         run: |
-          echo "===== SERVER LOG ====="
-          cat server.log || true
+          echo "=================================="
+          echo " FINAL SERVER LOG"
+          echo "=================================="
+
+          if [ -f server.log ]; then
+            cat server.log
+          else
+            echo "server.log tidak ditemukan"
+          fi
 
           echo ""
-          echo "===== OLLAMA LOG ====="
-          cat ollama.log || true
+          echo "=================================="
+          echo " FINAL OLLAMA LOG"
+          echo "=================================="
+
+          if [ -f ollama.log ]; then
+            cat ollama.log
+          else
+            echo "ollama.log tidak ditemukan"
+          fi
