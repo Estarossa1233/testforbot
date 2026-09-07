@@ -504,14 +504,42 @@ bot.on(
                 time: new Date()
             });
 
+            
             // =========================
             // KIRIM JAWABAN
             // =========================
+            
+            function splitReply(text) {
+                const sentences = text.match(/[^.!?]+[.!?]+/g);
+            
+                if (!sentences || sentences.length < 2) {
+                    return [text];
+                }
+            
+                const middle = Math.ceil(sentences.length / 2);
+            
+                const part1 = sentences
+                    .slice(0, middle)
+                    .join("")
+                    .trim();
+            
+                const part2 = sentences
+                    .slice(middle)
+                    .join("")
+                    .trim();
+            
+                return [part1, part2].filter(Boolean);
+            }
 
-            await bot.sendMessage(
-                chatId,
-                reply
-            );
+const parts = splitReply(reply);
+
+for (const part of parts) {
+    await bot.sendMessage(chatId, part);
+
+    await new Promise(
+        resolve => setTimeout(resolve, 500)
+    );
+}
 
         } catch (err) {
 
