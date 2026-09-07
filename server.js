@@ -510,8 +510,17 @@ bot.on(
             // =========================
             
             function splitReply(text) {
+            
+                // Jika teks 250 karakter atau kurang,
+                // kirim sebagai 1 pesan
+                if (text.length <= 250) {
+                    return [text];
+                }
+            
                 const sentences = text.match(/[^.!?]+[.!?]+/g);
             
+                // Jika tidak cukup untuk dibagi,
+                // kirim sebagai 1 pesan
                 if (!sentences || sentences.length < 2) {
                     return [text];
                 }
@@ -530,7 +539,20 @@ bot.on(
             
                 return [part1, part2].filter(Boolean);
             }
-
+            
+            const parts = splitReply(reply);
+            
+            for (const part of parts) {
+            
+                await bot.sendMessage(
+                    chatId,
+                    part
+                );
+            
+                await new Promise(
+                    resolve => setTimeout(resolve, 500)
+                );
+            }
 const parts = splitReply(reply);
 
 for (const part of parts) {
