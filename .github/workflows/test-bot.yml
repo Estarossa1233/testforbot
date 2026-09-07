@@ -23,15 +23,20 @@ jobs:
           node-version: 24
 
       # =========================
-      # OLLAMA
+      # INSTALL OLLAMA
       # =========================
       - name: Install Ollama
         run: |
           curl -fsSL https://ollama.com/install.sh | sh
 
+      # =========================
+      # START OLLAMA
+      # =========================
       - name: Start Ollama
         run: |
-          echo "===== CHECK OLLAMA ====="
+          echo "=================================="
+          echo " CHECK OLLAMA"
+          echo "=================================="
 
           if curl -sf http://127.0.0.1:11434/api/tags > /dev/null; then
             echo "✅ Ollama sudah berjalan"
@@ -41,6 +46,7 @@ jobs:
             ollama serve > ollama.log 2>&1 &
 
             echo "Menunggu Ollama..."
+
             for i in {1..30}; do
               if curl -sf http://127.0.0.1:11434/api/tags > /dev/null; then
                 echo "✅ Ollama berhasil berjalan"
@@ -53,15 +59,23 @@ jobs:
 
           echo ""
           echo "===== OLLAMA STATUS ====="
+
           curl --fail http://127.0.0.1:11434/api/tags
 
+      # =========================
+      # DOWNLOAD MODEL
+      # =========================
       - name: Download AI model
         run: |
-          echo "===== DOWNLOAD MODEL ====="
+          echo "=================================="
+          echo " DOWNLOAD QWEN 7B"
+          echo "=================================="
+
           ollama pull qwen2.5:7b
 
           echo ""
           echo "===== MODEL CHECK ====="
+
           ollama list
 
       # =========================
@@ -69,6 +83,10 @@ jobs:
       # =========================
       - name: Install dependencies
         run: |
+          echo "=================================="
+          echo " INSTALL NPM DEPENDENCIES"
+          echo "=================================="
+
           npm install
 
       # =========================
@@ -88,47 +106,62 @@ jobs:
 
           echo ""
           echo "===== GETENT ====="
-          getent hosts "$DB_HOST" || echo "❌ GETENT tidak menemukan host"
+
+          getent hosts "$DB_HOST" || \
+            echo "⚠️ GETENT tidak menemukan host"
 
           echo ""
-          echo "===== NSLOOKUP GOOGLE DNS ====="
+          echo "===== NSLOOKUP GOOGLE ====="
+
           nslookup "$DB_HOST" 8.8.8.8 || true
 
           echo ""
-          echo "===== NSLOOKUP CLOUDFLARE DNS ====="
+          echo "===== NSLOOKUP CLOUDFLARE ====="
+
           nslookup "$DB_HOST" 1.1.1.1 || true
 
           echo ""
-          echo "===== DIG GOOGLE DNS ====="
+          echo "===== DIG GOOGLE ====="
+
           dig +short "$DB_HOST" @8.8.8.8 || true
 
           echo ""
-          echo "===== DIG CLOUDFLARE DNS ====="
+          echo "===== DIG CLOUDFLARE ====="
+
           dig +short "$DB_HOST" @1.1.1.1 || true
 
           echo ""
           echo "===== AIVEN DNS TEST SELESAI ====="
 
       # =========================
-      # START BOT
+      # START TELEGRAM BOT
       # =========================
       - name: Start Telegram Bot
         env:
+          # =========================
+          # SERVER
+          # =========================
           PORT: 3000
 
+          # =========================
           # OLLAMA
+          # =========================
           OLLAMA_URL: http://127.0.0.1:11434/api/chat
           OLLAMA_MODEL: qwen2.5:7b
 
+          # =========================
           # AIVEN MYSQL
+          # =========================
           DB_HOST: mysql-65b8a81-duyencavez-9525.d.aivencloud.com
           DB_PORT: 15364
           DB_USER: ${{ secrets.DB_USER }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          DB_NAME: defaultdb
+          DB_NAME: imbajp
           DB_CA_PATH: ./certs/ca.pem
 
+          # =========================
           # TELEGRAM
+          # =========================
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           ADMIN_TELEGRAM_ID: ${{ secrets.ADMIN_TELEGRAM_ID }}
 
@@ -138,24 +171,34 @@ jobs:
           echo "=================================="
 
           npm start > server.log 2>&1 &
+
           echo $! > server.pid
 
           echo "PID: $(cat server.pid)"
 
           echo ""
           echo "Menunggu server..."
+
           sleep 10
 
           echo ""
-          echo "===== SERVER STATUS ====="
+          echo "=================================="
+          echo " SERVER STATUS"
+          echo "=================================="
+
           curl --fail http://127.0.0.1:3000/api/status
 
           echo ""
           echo "=================================="
           echo " TELEGRAM BOT AI AKTIF"
           echo "=================================="
-          echo "Bot akan aktif selama 6 jam."
 
+          echo "Bot akan aktif selama 6 jam."
+          echo "Silakan kirim pesan ke Telegram."
+
+          # =========================
+          # KEEP BOT ALIVE 6 JAM
+          # =========================
           for i in {1..360}; do
 
             echo ""
@@ -166,7 +209,7 @@ jobs:
             if [ -f server.log ]; then
               tail -n 80 server.log
             else
-              echo "server.log belum tersedia"
+              echo "⚠️ server.log belum tersedia"
             fi
 
             echo ""
@@ -174,18 +217,21 @@ jobs:
             echo " OLLAMA CHECK"
             echo "=================================="
 
-            curl -sf http://127.0.0.1:11434/api/tags > /dev/null \
-              && echo "✅ Ollama masih aktif" \
-              || echo "❌ Ollama tidak merespons"
+            if curl -sf http://127.0.0.1:11434/api/tags > /dev/null; then
+              echo "✅ Ollama masih aktif"
+            else
+              echo "❌ Ollama tidak merespons"
+            fi
 
             echo ""
             echo "Menunggu 60 detik..."
 
             sleep 60
+
           done
 
       # =========================
-      # LOG JIKA SELESAI / GAGAL
+      # FINAL LOG
       # =========================
       - name: Show server log
         if: always()
