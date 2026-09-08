@@ -81,7 +81,9 @@ app.use(
 app.post(
     "/api/messages/:id/send",
     async (req, res) => {
+
         try {
+
             const chatId = Number(req.params.id);
             const { text } = req.body;
 
@@ -504,123 +506,147 @@ bot.on(
                 time: new Date()
             });
 
-            
             // =========================
             // KIRIM JAWABAN
             // =========================
-            
+
             await bot.sendMessage(
                 chatId,
                 reply
             );
-                        
-             // =========================
-            // API STATUS
-            // =========================
-            
-            app.get(
-                "/api/status",
-                (req, res) => {
-            
-                    res.json({
-                        success: true,
-                        server: "Online",
-                        model: MODEL
-                    });
-                }
+
+        } catch (err) {
+
+            console.error(
+                "MESSAGE HANDLER ERROR:",
+                err
             );
-            
-            // =========================
-            // API CHAT
-            // =========================
-            
-            app.post(
-                "/api/chat",
-                async (req, res) => {
-            
-                    try {
-            
-                        const { prompt } =
-                            req.body;
-            
-                        if (!prompt) {
-            
-                            return res.status(400).json({
-                                success: false,
-                                message: "Prompt kosong."
-                            });
-                        }
-            
-                        const reply =
-                            await askOllama(prompt);
-            
-                        return res.json({
-                            success: true,
-                            reply
-                        });
-            
-                    } catch (err) {
-            
-                        console.error(
-                            "API CHAT ERROR:",
-                            err
-                        );
-            
-                        return res.status(500).json({
-                            success: false,
-                            message:
-                                "Gagal terhubung ke Ollama."
-                        });
-                    }
-                }
+
+            try {
+
+                await bot.sendMessage(
+                    msg.chat.id,
+                    "⚠️ AI sedang offline."
+                );
+
+            } catch (sendError) {
+
+                console.error(
+                    "ERROR SEND FALLBACK:",
+                    sendError.message
+                );
+            }
+        }
+    }
+);
+
+// =========================
+// API STATUS
+// =========================
+
+app.get(
+    "/api/status",
+    (req, res) => {
+
+        res.json({
+            success: true,
+            server: "Online",
+            model: MODEL
+        });
+    }
+);
+
+// =========================
+// API CHAT
+// =========================
+
+app.post(
+    "/api/chat",
+    async (req, res) => {
+
+        try {
+
+            const { prompt } =
+                req.body;
+
+            if (!prompt) {
+
+                return res.status(400).json({
+                    success: false,
+                    message: "Prompt kosong."
+                });
+            }
+
+            const reply =
+                await askOllama(prompt);
+
+            return res.json({
+                success: true,
+                reply
+            });
+
+        } catch (err) {
+
+            console.error(
+                "API CHAT ERROR:",
+                err
             );
-            
-            // =========================
-            // FRONTEND
-            // =========================
-            
-            app.get(
-                "*",
-                (req, res) => {
-            
-                    res.sendFile(
-                        path.join(
-                            __dirname,
-                            "public",
-                            "index.html"
-                        )
-                    );
-                }
-            );
-            
-            // =========================
-            // START SERVER
-            // =========================
-            
-            app.listen(
-                PORT,
-                () => {
-            
-                    console.log(
-                        "----------------------------------"
-                    );
-            
-                    console.log(
-                        " IMBAJP AI Dashboard"
-                    );
-            
-                    console.log(
-                        "----------------------------------"
-                    );
-            
-                    console.log(
-                        `Server : http://localhost:${PORT}`
-                    );
-            
-                    console.log(
-                        `Model  : ${MODEL}`
-                    );
-            
-                    testConnection();
-                }
-            );
+
+            return res.status(500).json({
+                success: false,
+                message:
+                    "Gagal terhubung ke Ollama."
+            });
+        }
+    }
+);
+
+// =========================
+// FRONTEND
+// =========================
+
+app.get(
+    "*",
+    (req, res) => {
+
+        res.sendFile(
+            path.join(
+                __dirname,
+                "public",
+                "index.html"
+            )
+        );
+    }
+);
+
+// =========================
+// START SERVER
+// =========================
+
+app.listen(
+    PORT,
+    () => {
+
+        console.log(
+            "----------------------------------"
+        );
+
+        console.log(
+            " IMBAJP AI Dashboard"
+        );
+
+        console.log(
+            "----------------------------------"
+        );
+
+        console.log(
+            `Server : http://localhost:${PORT}`
+        );
+
+        console.log(
+            `Model  : ${MODEL}`
+        );
+
+        testConnection();
+    }
+);
