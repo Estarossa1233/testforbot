@@ -509,192 +509,118 @@ bot.on(
             // KIRIM JAWABAN
             // =========================
             
-            function splitReply(text) {
-            
-                // Jika teks 250 karakter atau kurang,
-                // kirim sebagai 1 pesan
-                if (text.length <= 250) {
-                    return [text];
-                }
-            
-                const sentences = text.match(/[^.!?]+[.!?]+/g);
-            
-                // Jika tidak cukup untuk dibagi,
-                // kirim sebagai 1 pesan
-                if (!sentences || sentences.length < 2) {
-                    return [text];
-                }
-            
-                const middle = Math.ceil(sentences.length / 2);
-            
-                const part1 = sentences
-                    .slice(0, middle)
-                    .join("")
-                    .trim();
-            
-                const part2 = sentences
-                    .slice(middle)
-                    .join("")
-                    .trim();
-            
-                return [part1, part2].filter(Boolean);
-            }
-            
-            const parts = splitReply(reply);
-            
-            for (const part of parts) {
-            
-                await bot.sendMessage(
-                    chatId,
-                    part
-                );
-            
-                await new Promise(
-                    resolve => setTimeout(resolve, 500)
-                );
-            }
-const parts = splitReply(reply);
-
-for (const part of parts) {
-    await bot.sendMessage(chatId, part);
-
-    await new Promise(
-        resolve => setTimeout(resolve, 500)
-    );
-}
-
-        } catch (err) {
-
-            console.error(
-                "MESSAGE HANDLER ERROR:",
-                err
-            );
-
-            try {
-
-                await bot.sendMessage(
-                    msg.chat.id,
-                    "⚠️ AI sedang offline."
-                );
-
-            } catch (sendError) {
-
-                console.error(
-                    "ERROR SEND FALLBACK:",
-                    sendError.message
-                );
-            }
-        }
-    }
-);
-
-// =========================
-// API STATUS
-// =========================
-
-app.get(
-    "/api/status",
-    (req, res) => {
-
-        res.json({
-            success: true,
-            server: "Online",
-            model: MODEL
-        });
-    }
-);
-
-// =========================
-// API CHAT
-// =========================
-
-app.post(
-    "/api/chat",
-    async (req, res) => {
-
-        try {
-
-            const { prompt } =
-                req.body;
-
-            if (!prompt) {
-
-                return res.status(400).json({
-                    success: false,
-                    message: "Prompt kosong."
-                });
-            }
-
-            const reply =
-                await askOllama(prompt);
-
-            return res.json({
-                success: true,
+            await bot.sendMessage(
+                chatId,
                 reply
-            });
-
-        } catch (err) {
-
-            console.error(
-                "API CHAT ERROR:",
-                err
             );
-
-            return res.status(500).json({
-                success: false,
-                message:
-                    "Gagal terhubung ke Ollama."
-            });
-        }
-    }
-);
-
-// =========================
-// FRONTEND
-// =========================
-
-app.get(
-    "*",
-    (req, res) => {
-
-        res.sendFile(
-            path.join(
-                __dirname,
-                "public",
-                "index.html"
-            )
-        );
-    }
-);
-
-// =========================
-// START SERVER
-// =========================
-
-app.listen(
-    PORT,
-    () => {
-
-        console.log(
-            "----------------------------------"
-        );
-
-        console.log(
-            " IMBAJP AI Dashboard"
-        );
-
-        console.log(
-            "----------------------------------"
-        );
-
-        console.log(
-            `Server : http://localhost:${PORT}`
-        );
-
-        console.log(
-            `Model  : ${MODEL}`
-        );
-
-        testConnection();
-    }
-);
+                        
+             // =========================
+            // API STATUS
+            // =========================
+            
+            app.get(
+                "/api/status",
+                (req, res) => {
+            
+                    res.json({
+                        success: true,
+                        server: "Online",
+                        model: MODEL
+                    });
+                }
+            );
+            
+            // =========================
+            // API CHAT
+            // =========================
+            
+            app.post(
+                "/api/chat",
+                async (req, res) => {
+            
+                    try {
+            
+                        const { prompt } =
+                            req.body;
+            
+                        if (!prompt) {
+            
+                            return res.status(400).json({
+                                success: false,
+                                message: "Prompt kosong."
+                            });
+                        }
+            
+                        const reply =
+                            await askOllama(prompt);
+            
+                        return res.json({
+                            success: true,
+                            reply
+                        });
+            
+                    } catch (err) {
+            
+                        console.error(
+                            "API CHAT ERROR:",
+                            err
+                        );
+            
+                        return res.status(500).json({
+                            success: false,
+                            message:
+                                "Gagal terhubung ke Ollama."
+                        });
+                    }
+                }
+            );
+            
+            // =========================
+            // FRONTEND
+            // =========================
+            
+            app.get(
+                "*",
+                (req, res) => {
+            
+                    res.sendFile(
+                        path.join(
+                            __dirname,
+                            "public",
+                            "index.html"
+                        )
+                    );
+                }
+            );
+            
+            // =========================
+            // START SERVER
+            // =========================
+            
+            app.listen(
+                PORT,
+                () => {
+            
+                    console.log(
+                        "----------------------------------"
+                    );
+            
+                    console.log(
+                        " IMBAJP AI Dashboard"
+                    );
+            
+                    console.log(
+                        "----------------------------------"
+                    );
+            
+                    console.log(
+                        `Server : http://localhost:${PORT}`
+                    );
+            
+                    console.log(
+                        `Model  : ${MODEL}`
+                    );
+            
+                    testConnection();
+                }
+            );
